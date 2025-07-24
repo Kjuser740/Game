@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Lamborghini Überholspiel</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+    }
+    canvas {
+      background: #333;
+      display: block;
+      margin: 20px auto;
+      border: 4px solid #555;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game" width="400" height="600"></canvas>
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const laneCount = 4;
+  const laneWidth = canvas.width / laneCount;
+  const carWidth = 40;
+  const carHeight = 80;
+  const playerY = canvas.height - carHeight - 10;
+  let playerLane = 1;
+  let gameOver = false;
+  let speed = 4;
+  let score = 0;
+
+  const enemyCars = [];
+
+  // Farben für Gegnerautos
+  const enemyColors = ["red", "blue", "green", "yellow", "white", "cyan", "orange"];
+
+  function drawCar(x, y, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, carWidth, carHeight);
+  }
+
+  function drawPlayer() {
+    const x = playerLane * laneWidth + (laneWidth - carWidth) / 2;
+    drawCar(x, playerY, "violet");
+  }
+
+  function spawnEnemyCar() {
+    const lane = Math.floor(Math.random() * laneCount);
+    const x = lane * laneWidth + (laneWidth - carWidth) / 2;
+    const color = enemyColors[Math.floor(Math.random() * enemyColors.length)];
+    enemyCars.push({ x, y: -carHeight, lane, color });
+  }
+
+  function updateEnemies() {
+    for (let car of enemyCars) {
+      car.y += speed;
+    }
+
+    const playerX = playerLane * laneWidth + (laneWidth - carWidth) / 2;
+    for (let car of enemyCars) {
+      if (
+        car.lane === playerLane &&
+        car.y + carHeight > playerY &&
+        car.y < playerY + carHeight
+      ) {
+        gameOver = true;
+      }
+    }
+
+    while (enemyCars.length && enemyCars[0].y > canvas.height) {
+      enemyCars.shift();
+      score += 1;
+    }
+  }
+
+  function drawRoadLines() {
+    ctx.strokeStyle = "#777";
+    ctx.setLineDash([10, 15]);
+    for (let i = 1; i < laneCount; i++) {
+      let x = i * laneWidth;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  function drawHUD() {
+    ctx.fillStyle = "white";
+    ctx.font = "16px Arial";
+    ctx.fillText(`Geschwindigkeit: ${speed}`, 10, 20);
+    ctx.fillText(`Score: ${score}`, 10, 40);
+  }
+
+  function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawRoadLines();
+    drawHUD();
+    drawPlayer();
+
+    for (let car of enemyCars) {
+      drawCar(car.x, car.y, car.color);
+    }
+
+    updateEnemies();
+
+    if (!gameOver) {
+      requestAnimationFrame(gameLoop);
+    } else {
+      ctx.fillStyle = "white";
+      ctx.font = "40px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Game Over!", canvas.width / 2, canvas.height / 2);
+      ctx.font = "20px Arial";
+      ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 40);
+    }
+  }
+
+  // Gegner alle 1.2 Sekunden
+  setInterval(() => {
+    if (!gameOver) spawnEnemyCar();
+  }, 1200);
+
+  // Lamborghini wird jede Minute schneller
+  setInterval(() => {
+    if (!gameOver) speed += 1;
+  }, 60000); // 60 Sekunden
+
+  // Steuerung
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" && playerLane > 0) {
+      playerLane--;
+    } else if (e.key === "ArrowRight" && playerLane < laneCount - 1) {
+      playerLane++;
+    }
+  });
+
+  gameLoop();
+</script>
+</body>
+</html>
